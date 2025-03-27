@@ -1,7 +1,7 @@
 // src/components/DragDrop.tsx
-import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
-import { useDropzone } from "react-dropzone";
+import Image from 'next/image';
+import { useCallback, useEffect, useState } from 'react';
+import { useDropzone } from 'react-dropzone';
 
 interface DragDropProps {
   onFileAccepted: (file: File | null, previewUrl: string) => void;
@@ -13,7 +13,7 @@ interface DragDropProps {
 export default function DragDrop({
   onFileAccepted,
   label,
-  acceptedTypes = ["image/jpeg", "image/png"],
+  acceptedTypes = ['image/jpeg', 'image/png'],
   currentPreview = null,
 }: DragDropProps) {
   const [preview, setPreview] = useState<string | null>(currentPreview);
@@ -44,32 +44,33 @@ export default function DragDrop({
 
   const clearSelection = () => {
     setPreview(null);
-    onFileAccepted(null, "");
+    onFileAccepted(null, '');
   };
 
   return (
-    <div className="flex flex-col items-center space-y-4">
+    <div className='flex flex-col items-center space-y-4'>
       <div
         {...getRootProps()}
-        className={`w-full p-8 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${
-          isDragActive
-            ? "border-blue-500 bg-blue-50"
-            : "border-gray-300 hover:border-blue-400"
-        }`}
+        className={`w-full p-8 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors min-h-80 text-center 
+          flex items-center justify-center ${
+            isDragActive
+              ? 'border-blue-500 bg-blue-50'
+              : 'border-gray-300 hover:border-blue-400'
+          }`}
       >
         <input {...getInputProps()} />
         {preview ? (
-          <div className="relative w-full h-64">
+          <div className='relative w-full min-h-80'>
             <Image
               src={preview}
-              alt="Aperçu"
+              alt='Aperçu'
               fill
-              className="object-contain"
+              className='object-contain'
               unoptimized // Required for blob URLs
             />
           </div>
         ) : (
-          <p className="text-gray-500">
+          <p className='text-gray-500'>
             {isDragActive
               ? "Déposez l'image ici"
               : `Glissez-déposez ${label} ici, ou cliquez pour sélectionner`}
@@ -77,10 +78,10 @@ export default function DragDrop({
         )}
       </div>
       {preview && (
-        <div className="flex w-full flex-row-reverse">
+        <div className='flex w-full flex-row-reverse'>
           <button
             onClick={clearSelection}
-            className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+            className='px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors'
           >
             Supprimer
           </button>
