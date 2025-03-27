@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import Head from 'next/head';
-import { useEffect, useState } from 'react';
-import { CameraCapture, DragDrop, ResultDisplay } from './components';
-import { compareImages, ComparisonResponse } from './service/api';
+import Head from "next/head";
+import { useEffect, useState } from "react";
+import { CameraCapture, DragDrop, ResultDisplay } from "./components";
+import { compareImages, ComparisonResponse } from "./service/api";
 
 export default function Home() {
   const [sourceImage, setSourceImage] = useState<File | null>(null);
@@ -43,7 +43,9 @@ export default function Home() {
 
   const handleCompare = async () => {
     if (!sourceImage || !targetImage) {
-      setError('Veuillez fournir une image source et une image cible');
+      setError(
+        "Veuillez fournir votre photo faciale et votre carte d'identité"
+      );
       return;
     }
 
@@ -59,7 +61,7 @@ export default function Home() {
       setResult(comparisonResult);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Une erreur inconnue est survenue'
+        err instanceof Error ? err.message : "Une erreur inconnue est survenue"
       );
     } finally {
       setIsLoading(false);
@@ -67,29 +69,29 @@ export default function Home() {
   };
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className="min-h-screen bg-gray-50">
       <Head>
-        <title>YAS comparaison faciale</title>
+        <title>Yes - Identification Automatique</title>
         <meta
-          name='description'
-          content='Outil de comparaison faciale'
+          name="description"
+          content="Identification par carte d'identité et reconnaissance faciale"
         />
       </Head>
 
-      <main className='container mx-auto py-8 px-4'>
-        <h1 className='text-3xl font-bold text-center mb-8'>
-          Comparaison faciale
+      <main className="container mx-auto py-8 px-4">
+        <h1 className="text-3xl font-bold text-center mb-8">
+          Identifiez vous facilement
         </h1>
 
-        <div className='max-w-4xl mx-auto space-y-8'>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
+        <div className="max-w-4xl mx-auto space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Source Image Section */}
-            <div className='space-y-4'>
-              <h2 className='text-xl font-semibold'>Votre Image</h2>
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold">Votre Photo Faciale</h2>
               {!isCameraOn && (
                 <DragDrop
                   onFileAccepted={handleSourceImage}
-                  label='votre image'
+                  label="votre photo faciale"
                   currentPreview={sourcePreview}
                 />
               )}
@@ -102,52 +104,31 @@ export default function Home() {
             </div>
 
             {/* Target Image Section */}
-            <div className='space-y-4'>
-              <h2 className='text-xl font-semibold'>Image cible</h2>
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold">Votre Carte d'Identité</h2>
 
               <DragDrop
                 onFileAccepted={handleTargetImage}
-                label='image cible'
+                label="votre carte d'identité"
                 currentPreview={targetPreview}
               />
             </div>
           </div>
 
-          <div className='space-y-2'>
-            <label
-              htmlFor='similarityThreshold'
-              className='block font-medium'
-            >
-              Seuil de similarité : {similarityThreshold}%
-            </label>
-            <input
-              id='similarityThreshold'
-              type='range'
-              min='0'
-              max='100'
-              value={similarityThreshold}
-              onChange={(e) => setSimilarityThreshold(Number(e.target.value))}
-              className='w-full'
-            />
-          </div>
-
           <button
             onClick={handleCompare}
             disabled={!sourceImage || !targetImage || isLoading}
-            className={`px-6 py-3 rounded-lg font-medium text-white ${
-              !sourceImage || !targetImage || isLoading
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700'
-            }`}
+            className={`px-6 py-3 rounded-lg w-full font-medium text-white cursor-pointer
+ ${
+   !sourceImage || !targetImage || isLoading
+     ? "bg-gray-400 cursor-not-allowed"
+     : "bg-blue-primary"
+ }`}
           >
-            {isLoading ? 'Comparaison en cours...' : 'Comparer les images'}
+            {isLoading ? "Vérification en cours..." : "Vérifier mon identité"}
           </button>
 
-          <ResultDisplay
-            result={result}
-            isLoading={isLoading}
-            error={error}
-          />
+          <ResultDisplay result={result} isLoading={isLoading} error={error} />
         </div>
       </main>
     </div>

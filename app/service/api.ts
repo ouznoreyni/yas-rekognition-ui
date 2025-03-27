@@ -56,7 +56,7 @@ export const compareImages = async (
 
   try {
     const response = await api.post<ComparisonResponse>(
-      "/api/v1/compare-images/",
+      "/api/v1/compare-faces/",
       formData,
       {
         params: { similarity_threshold: similarityThreshold },

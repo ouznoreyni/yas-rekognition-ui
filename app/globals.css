@@ -29,3 +29,28 @@ body {
   height: 325px;
   min-height: 300px !important;
   }  
+
+  .bg-blue-primary{
+    background-color: #01377c;
+  }
+  .text-blue-primary{
+    color: #01377c;
+  }
+  .bg-yellow-primary{
+    background-color: #ffd100;
+  }
+  .text-yellow-primary{
+    color: #ffd100;
+  }
+  .text-text-primary{
+    color: #4d73a4;
+  }
+  .text-accent-primary{
+    color: #fffdda;
+  }
+  .border-yellow{
+    border-color: #ffd100 ;
+  }
+  .border-blue{
+    border-color: #01377c;
+  }
