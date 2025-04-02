@@ -18,25 +18,29 @@ export default function BlinkIDWebcamPage() {
     useState<ProcessingResult | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanFeedback, setScanFeedback] = useState(
-    "Point the camera at the front side of the document."
+    "Pointez la caméra sur le recto du document."
   );
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const sdkRef = useRef<any>(null);
-  const videoRecognizerRef = useRef<any>(null);
+  const sdkRef = useRef<BlinkIDSDK.WasmSDK | null>(null);
+  const videoRecognizerRef = useRef<BlinkIDSDK.VideoRecognizer | null>(null);
+  const scanFeedbackLockRef = useRef(false);
 
-  // Initialize SDK
+  // Initialisation du SDK
   useEffect(() => {
     const initializeBlinkID = async () => {
       if (!BlinkIDSDK.isBrowserSupported()) {
-        setError("This browser is not supported!");
+        setError("Ce navigateur n'est pas supporté !");
         return;
       }
 
       setIsLoading(true);
       const licenseKey =
-        process.env.NEXT_PUBLIC_BLINKID_LICENSE_KEY || "your-license-key-here";
+        process.env.NEXT_PUBLIC_BLINKID_LICENSE_KEY ||
+        "sRwAAAYJbG9jYWxob3N0r/lOPk4/w35CpJlWL0MTw9lA6q+09tH36QOY0sh5qALbn6GlRaS+NEVxdQNdSz0PUDg2ROg6blxTPaJTWZapDzZyscelQGLoUHHXuEKmxqQ2SFkiZdisLW/Z7pNXeDSTny/SuLKRAYURp0ypKLxz7/64ZbMZApnFkgYr5tV1vrhwZE+qv+7ac3xZtdmcVXs9XX1lY2SWZiLE6Nm8j40nPT6BMBDGe/0AHBx/UlXVBYzJ8wyztLdKdBjbSS3TUpPTnmMjRtZMPM55uTsrlFDKC99rTaXLU19oRc9H5gYZABp0ifLqO8zcPsVtPWIlb7QjlVehGY4Yo1gOnR8=";
       const loadSettings = new BlinkIDSDK.WasmSDKLoadSettings(licenseKey);
+
+      loadSettings.allowHelloMessage = true;
       loadSettings.engineLocation = "/resources";
       loadSettings.workerLocation = "/resources/BlinkIDWasmSDK.worker.min.js";
 
@@ -44,8 +48,8 @@ export default function BlinkIDWebcamPage() {
         const sdk = await BlinkIDSDK.loadWasmModule(loadSettings);
         sdkRef.current = sdk;
       } catch (err) {
-        setError("Failed to load SDK!");
-        console.error("Failed to load SDK!", err);
+        setError("Échec du chargement du SDK !");
+        console.error("Échec du chargement du SDK !", err);
       } finally {
         setIsLoading(false);
       }
@@ -54,38 +58,41 @@ export default function BlinkIDWebcamPage() {
     initializeBlinkID();
   }, []);
 
-  // Start scanning when isScanning changes
+  // Démarrer le scan lorsque isScanning change
   useEffect(() => {
-    if (!isScanning) return;
+    if (
+      !isScanning ||
+      !sdkRef.current ||
+      !videoRef.current ||
+      !canvasRef.current
+    )
+      return;
 
     const startScan = async () => {
-      if (!sdkRef.current || !videoRef.current || !canvasRef.current) {
-        setError("Required elements are not available");
-        setIsScanning(false);
-        setIsLoading(false);
-        return;
-      }
-
       setError(null);
       setProcessingResult(null);
-      setScanFeedback("Point the camera at the front side of the document.");
+      setScanFeedback("Pointez la caméra sur le recto du document.");
 
       const multiSideRecognizer =
         await BlinkIDSDK.createBlinkIdMultiSideRecognizer(sdkRef.current);
-      const drawContext = canvasRef.current.getContext("2d");
+      const drawContext = canvasRef?.current?.getContext("2d");
 
       if (!drawContext) {
-        setError("Failed to get canvas context");
+        setError("Échec de l'obtention du contexte du canvas");
         setIsScanning(false);
         setIsLoading(false);
         return;
       }
 
       const callbacks = {
-        onQuadDetection: (quad: any) => drawQuad(quad, drawContext),
-        onDetectionFailed: () => setScanFeedback("Detection failed"),
-        onFirstSideResult: () =>
-          setScanFeedback("Flip the document to scan the back side"),
+        onQuadDetection: (quad: BlinkIDSDK.DisplayableQuad) =>
+          drawQuad(quad, drawContext),
+        onDetectionFailed: () =>
+          updateScanFeedback("Échec de la détection", true),
+        onFirstSideResult: () => {
+          updateScanFeedback("Retournez le document pour scanner le verso.");
+          alert("Retournez le document.");
+        },
       };
 
       const recognizerRunner = await BlinkIDSDK.createRecognizerRunner(
@@ -116,17 +123,27 @@ export default function BlinkIDWebcamPage() {
 
           const parsedResult = parseResults(result);
           setProcessingResult(parsedResult);
-          setScanFeedback("Scan completed successfully!");
+
+          const derivedFullName =
+            `${parsedResult.firstName || ""} ${
+              parsedResult.lastName || ""
+            }`.trim() || parsedResult.fullName;
+          alert(
+            `Bonjour, ${derivedFullName} !\nVous êtes né(e) le ${
+              parsedResult.dateOfBirth || "inconnu"
+            }.`
+          );
 
           videoRecognizer.releaseVideoFeed();
           recognizerRunner.delete();
           multiSideRecognizer.delete();
+          clearDrawCanvas(drawContext);
           setIsScanning(false);
           setIsLoading(false);
         });
       } catch (err) {
-        setError("Error during scan initialization");
-        console.error("Error during scan:", err);
+        setError("Erreur lors de l'initialisation du scan");
+        console.error("Erreur lors du scan :", err);
         setIsScanning(false);
         setIsLoading(false);
       }
@@ -135,7 +152,7 @@ export default function BlinkIDWebcamPage() {
     startScan();
   }, [isScanning]);
 
-  // Cleanup on unmount
+  // Nettoyage lors du démontage
   useEffect(() => {
     return () => {
       if (videoRecognizerRef.current) {
@@ -162,7 +179,7 @@ export default function BlinkIDWebcamPage() {
       result.fullName?.latin ||
       result.fullName?.cyrillic ||
       result.fullName?.arabic ||
-      `${result.mrz?.secondaryID} ${result.mrz?.primaryID}`;
+      `${result.mrz?.secondaryID || ""} ${result.mrz?.primaryID || ""}`.trim();
     const dateOfBirth = result.dateOfBirth?.year
       ? `${result.dateOfBirth.year}-${result.dateOfBirth.month}-${result.dateOfBirth.day}`
       : result.mrz?.dateOfBirth?.year
@@ -172,18 +189,14 @@ export default function BlinkIDWebcamPage() {
     return { firstName, lastName, fullName, dateOfBirth };
   };
 
-  const drawQuad = (quad: any, drawContext: CanvasRenderingContext2D) => {
-    drawContext.clearRect(
-      0,
-      0,
-      canvasRef.current!.width,
-      canvasRef.current!.height
-    );
-
-    const color = quad.detectionStatus === 1 ? "#00FF00FF" : "#FF0000FF";
-    drawContext.strokeStyle = color;
-    drawContext.lineWidth = 5;
-
+  const drawQuad = (
+    quad: BlinkIDSDK.DisplayableQuad,
+    drawContext: CanvasRenderingContext2D
+  ) => {
+    clearDrawCanvas(drawContext);
+    setupColor(quad, drawContext);
+    setupMessage(quad);
+    applyTransform(quad.transformMatrix, drawContext);
     drawContext.beginPath();
     drawContext.moveTo(quad.topLeft.x, quad.topLeft.y);
     drawContext.lineTo(quad.topRight.x, quad.topRight.y);
@@ -191,64 +204,136 @@ export default function BlinkIDWebcamPage() {
     drawContext.lineTo(quad.bottomLeft.x, quad.bottomLeft.y);
     drawContext.closePath();
     drawContext.stroke();
-
-    updateScanFeedback(quad.detectionStatus);
   };
 
-  const updateScanFeedback = (detectionStatus: number) => {
-    switch (detectionStatus) {
+  const applyTransform = (
+    transformMatrix: Float32Array,
+    drawContext: CanvasRenderingContext2D
+  ) => {
+    const canvasAR = canvasRef.current!.width / canvasRef.current!.height;
+    const videoAR =
+      videoRef.current!.videoWidth / videoRef.current!.videoHeight;
+    let xOffset = 0;
+    let yOffset = 0;
+    let scaledVideoHeight = 0;
+    let scaledVideoWidth = 0;
+
+    if (canvasAR > videoAR) {
+      scaledVideoHeight = canvasRef.current!.height;
+      scaledVideoWidth = videoAR * scaledVideoHeight;
+      xOffset = (canvasRef.current!.width - scaledVideoWidth) / 2;
+    } else {
+      scaledVideoWidth = canvasRef.current!.width;
+      scaledVideoHeight = scaledVideoWidth / videoAR;
+      yOffset = (canvasRef.current!.height - scaledVideoHeight) / 2;
+    }
+
+    drawContext.translate(xOffset, yOffset);
+    drawContext.scale(
+      scaledVideoWidth / videoRef.current!.videoWidth,
+      scaledVideoHeight / videoRef.current!.videoHeight
+    );
+    drawContext.transform(
+      transformMatrix[0],
+      transformMatrix[3],
+      transformMatrix[1],
+      transformMatrix[4],
+      transformMatrix[2],
+      transformMatrix[5]
+    );
+  };
+
+  const clearDrawCanvas = (drawContext: CanvasRenderingContext2D) => {
+    canvasRef.current!.width = canvasRef.current!.clientWidth;
+    canvasRef.current!.height = canvasRef.current!.clientHeight;
+    drawContext.clearRect(
+      0,
+      0,
+      canvasRef.current!.width,
+      canvasRef.current!.height
+    );
+  };
+
+  const setupColor = (
+    displayable: BlinkIDSDK.Displayable,
+    drawContext: CanvasRenderingContext2D
+  ) => {
+    let color = "#FFFF00FF";
+    if (displayable.detectionStatus === 0) {
+      color = "#FF0000FF";
+    } else if (displayable.detectionStatus === 1) {
+      color = "#00FF00FF";
+    }
+    drawContext.fillStyle = color;
+    drawContext.strokeStyle = color;
+    drawContext.lineWidth = 5;
+  };
+
+  const setupMessage = (displayable: BlinkIDSDK.Displayable) => {
+    switch (displayable.detectionStatus) {
       case BlinkIDSDK.DetectionStatus.Failed:
-        setScanFeedback("Scanning...");
+        updateScanFeedback("Scan en cours...");
         break;
       case BlinkIDSDK.DetectionStatus.Success:
       case BlinkIDSDK.DetectionStatus.FallbackSuccess:
-        setScanFeedback("Detection successful");
+        updateScanFeedback("Détection réussie");
         break;
       case BlinkIDSDK.DetectionStatus.CameraAngleTooSteep:
-        setScanFeedback("Adjust the angle");
+        updateScanFeedback("Ajustez l'angle");
         break;
       case BlinkIDSDK.DetectionStatus.CameraTooFar:
-        setScanFeedback("Move document closer");
+        updateScanFeedback("Rapprochez le document");
         break;
       case BlinkIDSDK.DetectionStatus.CameraTooClose:
       case BlinkIDSDK.DetectionStatus.DocumentTooCloseToCameraEdge:
       case BlinkIDSDK.DetectionStatus.DocumentPartiallyVisible:
-        setScanFeedback("Move document farther");
+        updateScanFeedback("Éloignez le document");
         break;
       default:
-        setScanFeedback("Scanning...");
+        console.warn(
+          "Statut de détection non géré !",
+          displayable.detectionStatus
+        );
     }
+  };
+
+  const updateScanFeedback = (message: string, force: boolean = false) => {
+    if (scanFeedbackLockRef.current && !force) return;
+    scanFeedbackLockRef.current = true;
+    setScanFeedback(message);
+    setTimeout(() => (scanFeedbackLockRef.current = false), 1000);
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Head>
-        <title>Yes - Webcam ID Scan</title>
-        <meta name="description" content="Scan your ID using your webcam" />
+        <title>Oui - Scan Webcam ID</title>
+        <meta name="description" content="Scannez votre ID avec votre webcam" />
       </Head>
 
       <main className="container mx-auto py-8 px-4">
         <h1 className="text-3xl font-bold text-center mb-8">
-          Scan Your ID with Webcam
+          Scannez Votre ID avec la Webcam
         </h1>
 
         <div className="max-w-4xl mx-auto space-y-8">
-          <button
-            onClick={() => {
-              setIsLoading(true);
-              setIsScanning(true);
-            }}
-            disabled={isLoading || isScanning}
-            className={`px-6 py-3 rounded-lg w-full font-medium text-white ${
-              isLoading || isScanning
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700"
-            } transition-colors`}
-          >
-            {isLoading || isScanning ? "Loading..." : "Start Scanning"}
-          </button>
+          {!isScanning && (
+            <button
+              onClick={() => {
+                setIsLoading(true);
+                setIsScanning(true);
+              }}
+              disabled={isLoading}
+              className={`px-6 py-3 rounded-lg w-full font-medium text-white ${
+                isLoading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700"
+              } transition-colors`}
+            >
+              {isLoading ? "Chargement..." : "Démarrer le Scan"}
+            </button>
+          )}
 
-          {/* Always render video and canvas, but hide them when not scanning */}
           <div className={`relative ${!isScanning ? "hidden" : ""}`}>
             <video
               ref={videoRef}
@@ -265,17 +350,17 @@ export default function BlinkIDWebcamPage() {
 
           {processingResult && (
             <div className="p-4 bg-green-100 text-green-700 rounded-lg">
-              <p>✅ Scan successful!</p>
-              <p>First Name: {processingResult.firstName}</p>
-              <p>Last Name: {processingResult.lastName}</p>
-              <p>Full Name: {processingResult.fullName}</p>
-              <p>Date of Birth: {processingResult.dateOfBirth}</p>
+              <p>✅ Scan réussi !</p>
+              <p>Prénom : {processingResult.firstName}</p>
+              <p>Nom : {processingResult.lastName}</p>
+              <p>Nom complet : {processingResult.fullName}</p>
+              <p>Date de naissance : {processingResult.dateOfBirth}</p>
             </div>
           )}
 
           {error && (
             <div className="p-4 bg-red-100 text-red-700 rounded-lg">
-              ❌ Error: {error}
+              ❌ Erreur : {error}
             </div>
           )}
         </div>
