@@ -5,12 +5,14 @@ interface CameraCaptureProps {
   onCapture: (file: File, previewUrl: string) => void;
   currentPreview?: string | null;
   onCameraStatusChange: (status: boolean) => void;
+  title?: string;
 }
 
 export default function CameraCapture({
   onCapture,
   currentPreview,
   onCameraStatusChange,
+  title = "Prendre une photo",
 }: CameraCaptureProps) {
   const webcamRef = useRef<Webcam>(null);
   const [isCameraOn, setIsCameraOn] = useState(false);
@@ -93,7 +95,7 @@ export default function CameraCapture({
             onClick={startCamera}
             className="px-4 py-2 bg-yellow-primary text-blue-primary rounded hover:bg-blue-600 transition-colors cursor-pointer"
           >
-            Prendre une photo
+            {title}
           </button>
         </div>
       )}

@@ -1,4 +1,4 @@
-import { ReactElement, useMemo } from "react";
+import { ReactElement } from "react";
 
 export interface ProcessingResult {
   firstName: string;
@@ -75,7 +75,7 @@ export const IdVerificationResult = ({ processingResult }): ReactElement => {
         <h3 className="text-lg font-semibold text-gray-700">
           Informations Personnelles
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <InfoItem
             label="Prénom(s)"
             value={processingResult.firstName.latin}
@@ -86,7 +86,7 @@ export const IdVerificationResult = ({ processingResult }): ReactElement => {
             value={processingResult.lastName.latin}
             key={"lastName"}
           />
-          {/* <InfoItem
+          <InfoItem
             label="Date de Naissance"
             value={formatDate(
               processingResult.dateOfBirth.year,
@@ -94,7 +94,7 @@ export const IdVerificationResult = ({ processingResult }): ReactElement => {
               processingResult.dateOfBirth.day
             )}
             key={"dateOfBirth"}
-          /> */}
+          />
           <InfoItem
             label="Lieu de Naissance"
             value={processingResult.placeOfBirth.latin}
@@ -107,7 +107,7 @@ export const IdVerificationResult = ({ processingResult }): ReactElement => {
           />
           <InfoItem
             label="Sexe"
-            value={processingResult.mrz.gender === "M" ? "Masculin" : "Féminin"}
+            value={processingResult.sex.latin == "M" ? "Masculin" : "Féminin"}
             key={"gender"}
           />
         </div>
@@ -116,21 +116,21 @@ export const IdVerificationResult = ({ processingResult }): ReactElement => {
       {/* Document Information Section */}
       <div className="space-y-3">
         <h3 className="text-lg font-semibold text-gray-700">
-          Document d'Identité
+          Document d&apos;Identité
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <InfoItem
-            label="Numéro de Document"
+            label="Numéro de la carte d'identité"
             value={processingResult.documentNumber.latin}
             key={"documentNumber"}
           />
           <InfoItem
-            label="Numéro Personnel"
+            label="NIN"
             value={processingResult.personalIdNumber.latin}
             key={"personalIdNumber"}
           />
           <InfoItem
-            label="Autorité Émettrice"
+            label="Centre d'enregistrement"
             value={processingResult.issuingAuthority.latin}
             key={"issuingAuthority"}
           />
@@ -140,15 +140,9 @@ export const IdVerificationResult = ({ processingResult }): ReactElement => {
             key={"countryName"}
           />
           <InfoItem
-            label="Adresse"
+            label="Adresse du domicile"
             value={processingResult.address.latin}
-            multiline
             key={"address"}
-          />
-          <InfoItem
-            label="Numéro MRZ"
-            value={processingResult.mrz.sanitizedDocumentNumber}
-            key={"sanitizedDocumentNumber"}
           />
         </div>
       </div>
@@ -158,7 +152,7 @@ export const IdVerificationResult = ({ processingResult }): ReactElement => {
         <h3 className="text-lg font-semibold text-gray-700">Validité</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <InfoItem
-            label="Date d'Émission"
+            label="Date de délivrance"
             value={formatDate(
               processingResult.dateOfIssue.year,
               processingResult.dateOfIssue.month,
@@ -167,7 +161,7 @@ export const IdVerificationResult = ({ processingResult }): ReactElement => {
             key={"dateOfIssue"}
           />
           <InfoItem
-            label="Date d'Expiration"
+            label="Date d'expiration"
             value={formatDate(
               processingResult.dateOfExpiry.year,
               processingResult.dateOfExpiry.month,

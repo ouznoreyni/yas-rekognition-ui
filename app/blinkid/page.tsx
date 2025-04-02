@@ -185,6 +185,7 @@ export default function BlinkIDPage() {
                 onCapture={(file, preview) => handleSourceImage(file, preview)}
                 currentPreview={sourcePreview}
                 onCameraStatusChange={handleCameraStatusChange}
+                title="Prendre une photo du recto"
               />
             </div>
 
@@ -202,6 +203,7 @@ export default function BlinkIDPage() {
                 onCapture={(file, preview) => handleTargetImage(file, preview)}
                 currentPreview={targetPreview}
                 onCameraStatusChange={handleCameraStatusChange}
+                title="Prendre une photo du verso"
               />
             </div>
           </div>
