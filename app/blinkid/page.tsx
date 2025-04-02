@@ -2,8 +2,9 @@
 
 import * as BlinkIDSDK from "@microblink/blinkid-in-browser-sdk";
 import Head from "next/head";
-import { useEffect, useState } from "react";
-import { CameraCapture, DragDrop } from "../components";
+import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
+import { DragDrop } from "../components";
 import { IdVerificationResult } from "../components/IdVerificationResult";
 
 interface ProcessingResult {
@@ -23,15 +24,31 @@ export default function BlinkIDPage() {
   const [result, setResult] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isCameraOn, setIsCameraOn] = useState(false);
+  const [isCameraOnRecto, setIsCameraOnRecto] = useState(false);
+  const [isCameraOnVerso, setIsCameraOnVerso] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const [processingResult, setProcessingResult] =
     useState<ProcessingResult | null>(null);
-  const [isMounted, setIsMounted] = useState(false); // Track client-side mounting
+
+  const rectoVideoRef = useRef<HTMLVideoElement>(null);
+  const versoVideoRef = useRef<HTMLVideoElement>(null);
+  const rectoCanvasRef = useRef<HTMLCanvasElement>(null);
+  const versoCanvasRef = useRef<HTMLCanvasElement>(null);
 
   // Mark component as mounted on client
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Cleanup previews and camera streams on unmount
+  useEffect(() => {
+    return () => {
+      if (sourcePreview) URL.revokeObjectURL(sourcePreview);
+      if (targetPreview) URL.revokeObjectURL(targetPreview);
+      stopCamera("recto");
+      stopCamera("verso");
+    };
+  }, [sourcePreview, targetPreview]);
 
   // Initialisation du SDK BlinkID
   const initializeBlinkID = async () => {
@@ -57,9 +74,10 @@ export default function BlinkIDPage() {
     return BlinkIDSDK.captureFrame(img);
   };
 
+  // Use native JavaScript Image class
   const loadImage = (src: string): Promise<HTMLImageElement> => {
     return new Promise((resolve, reject) => {
-      const img = new Image();
+      const img = new window.Image();
       img.onload = () => resolve(img);
       img.onerror = reject;
       img.src = src;
@@ -103,6 +121,7 @@ export default function BlinkIDPage() {
     return results; // Simplified for now; add parsing logic as needed
   };
 
+  // Handlers for DragDrop
   const handleSourceImage = (file: File | null, previewUrl: string) => {
     setRecto(file);
     setSourcePreview(file ? previewUrl : null);
@@ -117,8 +136,57 @@ export default function BlinkIDPage() {
     setError(null);
   };
 
-  const handleCameraStatusChange = (status: boolean) => {
-    setIsCameraOn(status);
+  // Camera functions
+  const startCamera = async (side: "recto" | "verso") => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const videoRef = side === "recto" ? rectoVideoRef : versoVideoRef;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        if (side === "recto") setIsCameraOnRecto(true);
+        else setIsCameraOnVerso(true);
+      }
+    } catch (err) {
+      console.error(`Erreur lors de l'accès à la caméra (${side}) :`, err);
+      setError("Impossible d'accéder à la caméra");
+    }
+  };
+
+  const stopCamera = (side: "recto" | "verso") => {
+    const videoRef = side === "recto" ? rectoVideoRef : versoVideoRef;
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach((track) => track.stop());
+      videoRef.current.srcObject = null;
+      if (side === "recto") setIsCameraOnRecto(false);
+      else setIsCameraOnVerso(false);
+    }
+  };
+
+  const captureImage = (side: "recto" | "verso") => {
+    const videoRef = side === "recto" ? rectoVideoRef : versoVideoRef;
+    const canvasRef = side === "recto" ? rectoCanvasRef : versoCanvasRef;
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], `${side}-capture.jpg`, {
+              type: "image/jpeg",
+            });
+            const previewUrl = URL.createObjectURL(file);
+            if (side === "recto") handleSourceImage(file, previewUrl);
+            else handleTargetImage(file, previewUrl);
+            stopCamera(side);
+          }
+        }, "image/jpeg");
+      }
+    }
   };
 
   const handleCompare = async () => {
@@ -145,13 +213,6 @@ export default function BlinkIDPage() {
     }
   };
 
-  useEffect(() => {
-    return () => {
-      if (sourcePreview) URL.revokeObjectURL(sourcePreview);
-      if (targetPreview) URL.revokeObjectURL(targetPreview);
-    };
-  }, [sourcePreview, targetPreview]);
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Head>
@@ -174,19 +235,62 @@ export default function BlinkIDPage() {
               <h2 className="text-xl font-semibold">
                 Recto de la Carte d'Identité
               </h2>
-              {!isCameraOn && (
-                <DragDrop
-                  onFileAccepted={handleSourceImage}
-                  label="Déposez le recto ici"
-                  currentPreview={sourcePreview}
-                />
+              {sourcePreview ? (
+                <div>
+                  <div className="relative w-full min-h-80 p-2 border-2 border-dashed rounded-lg cursor-pointer transition-colors border-green-600 hover:border-green-400">
+                    <Image
+                      src={sourcePreview}
+                      alt="Recto preview"
+                      fill
+                      className="object-contain"
+                      unoptimized
+                    />
+                  </div>
+                  <button
+                    onClick={() => handleSourceImage(null, "")}
+                    className="w-full mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                  >
+                    Retirer l'image
+                  </button>
+                </div>
+              ) : isCameraOnRecto ? (
+                <div className="space-y-2">
+                  <video
+                    ref={rectoVideoRef}
+                    autoPlay
+                    className="w-full h-auto rounded-lg"
+                  />
+                  <canvas ref={rectoCanvasRef} className="hidden" />
+                  <div className="space-x-2">
+                    <button
+                      onClick={() => captureImage("recto")}
+                      className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                    >
+                      Prendre la photo
+                    </button>
+                    <button
+                      onClick={() => stopCamera("recto")}
+                      className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <DragDrop
+                    onFileAccepted={handleSourceImage}
+                    label="Déposez le recto ici"
+                    currentPreview={sourcePreview}
+                  />
+                  <button
+                    onClick={() => startCamera("recto")}
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full"
+                  >
+                    Prendre une photo
+                  </button>
+                </div>
               )}
-              <CameraCapture
-                onCapture={(file, preview) => handleSourceImage(file, preview)}
-                currentPreview={sourcePreview}
-                onCameraStatusChange={handleCameraStatusChange}
-                title="Prendre une photo du recto"
-              />
             </div>
 
             {/* Verso */}
@@ -194,17 +298,62 @@ export default function BlinkIDPage() {
               <h2 className="text-xl font-semibold">
                 Verso de la Carte d'Identité
               </h2>
-              <DragDrop
-                onFileAccepted={handleTargetImage}
-                label="Déposez le verso ici"
-                currentPreview={targetPreview}
-              />
-              <CameraCapture
-                onCapture={(file, preview) => handleTargetImage(file, preview)}
-                currentPreview={targetPreview}
-                onCameraStatusChange={handleCameraStatusChange}
-                title="Prendre une photo du verso"
-              />
+              {targetPreview ? (
+                <div>
+                  <div className="relative w-full min-h-80 p-2 border-2 border-dashed rounded-lg cursor-pointer transition-colors border-green-600 hover:border-green-400">
+                    <Image
+                      src={targetPreview}
+                      alt="Verso preview"
+                      fill
+                      className="object-contain"
+                      unoptimized
+                    />
+                  </div>
+                  <button
+                    onClick={() => handleTargetImage(null, "")}
+                    className="w-full mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                  >
+                    Retirer l'image
+                  </button>
+                </div>
+              ) : isCameraOnVerso ? (
+                <div className="space-y-2">
+                  <video
+                    ref={versoVideoRef}
+                    autoPlay
+                    className="w-full h-auto rounded-lg"
+                  />
+                  <canvas ref={versoCanvasRef} className="hidden" />
+                  <div className="space-x-2">
+                    <button
+                      onClick={() => captureImage("verso")}
+                      className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                    >
+                      Prendre la photo
+                    </button>
+                    <button
+                      onClick={() => stopCamera("verso")}
+                      className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <DragDrop
+                    onFileAccepted={handleTargetImage}
+                    label="Déposez le verso ici"
+                    currentPreview={targetPreview}
+                  />
+                  <button
+                    onClick={() => startCamera("verso")}
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full"
+                  >
+                    Prendre une photo
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -218,7 +367,9 @@ export default function BlinkIDPage() {
                 : "bg-blue-600 hover:bg-blue-700"
             } transition-colors`}
           >
-            {isLoading ? "Analyse en cours..." : "Vérifier mon identité"}
+            {isLoading
+              ? "Analyse en cours..."
+              : "Extraire les informations de la carte"}
           </button>
 
           {/* Affichage des résultats */}
