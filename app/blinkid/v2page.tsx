@@ -136,10 +136,9 @@ export default function BlinkIDPage() {
       );
 
       // Traitement du recto
-      //let frontResult = BlinkIDSDK.RecognizerResultState.Empty;
+      let frontResult = BlinkIDSDK.RecognizerResultState.Empty;
       const frontFrame = await fileToImageFrame(frontImage);
-
-      const frontResult = await recognizerRunner.processImage(frontFrame);
+      frontResult = await recognizerRunner.processImage(frontFrame);
 
       if (frontResult === BlinkIDSDK.RecognizerResultState.Empty) {
         throw new Error(
@@ -148,9 +147,9 @@ export default function BlinkIDPage() {
       }
 
       // Traitement du verso
-      //let backResult = BlinkIDSDK.RecognizerResultState.Empty;
+      let backResult = BlinkIDSDK.RecognizerResultState.Empty;
       const backFrame = await fileToImageFrame(backImage);
-      const backResult = await recognizerRunner.processImage(backFrame);
+      backResult = await recognizerRunner.processImage(backFrame);
 
       if (backResult === BlinkIDSDK.RecognizerResultState.Empty) {
         throw new Error(

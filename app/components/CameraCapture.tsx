@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from "react";
-import Webcam from "react-webcam";
+import { useCallback, useRef, useState } from 'react';
+import Webcam from 'react-webcam';
 
 interface CameraCaptureProps {
   onCapture: (file: File, previewUrl: string) => void;
@@ -12,7 +12,7 @@ export default function CameraCapture({
   onCapture,
   currentPreview,
   onCameraStatusChange,
-  title = "Prendre une photo",
+  title = 'Prendre une photo',
 }: CameraCaptureProps) {
   const webcamRef = useRef<Webcam>(null);
   const [isCameraOn, setIsCameraOn] = useState(false);
@@ -28,7 +28,7 @@ export default function CameraCapture({
 
     setCapturedPreview(imageSrc);
     const blob = await fetch(imageSrc).then((res) => res.blob());
-    const file = new File([blob], "captured.jpg", { type: "image/jpeg" });
+    const file = new File([blob], 'captured.jpg', { type: 'image/jpeg' });
     onCapture(file, imageSrc);
     setIsCameraOn(false);
     onCameraStatusChange(false);
@@ -65,35 +65,35 @@ export default function CameraCapture({
   };
 
   return (
-    <div className="space-y-4">
+    <div className='space-y-4'>
       {isCameraOn ? (
-        <div className="space-y-4">
+        <div className='space-y-4'>
           <Webcam
             audio={false}
             ref={webcamRef}
-            screenshotFormat="image/jpeg"
-            className="w-full rounded-lg"
+            screenshotFormat='image/jpeg'
+            className='w-full rounded-lg'
           />
-          <div className="flex justify-center space-x-4">
+          <div className='flex justify-center space-x-4'>
             <button
               onClick={closeCamera}
-              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+              className='px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors'
             >
               Fermer la caméra
             </button>
             <button
               onClick={capture}
-              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+              className='px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors'
             >
               Capturer la photo
             </button>
           </div>
         </div>
       ) : (
-        <div className="flex w-full flex-row-reverse">
+        <div className='flex w-full flex-row-reverse'>
           <button
             onClick={startCamera}
-            className="px-4 py-2 bg-yellow-primary text-blue-primary rounded hover:bg-blue-600 transition-colors cursor-pointer"
+            className='w-full px-4 py-2 bg-yellow-primary text-blue-primary rounded hover:bg-blue-600 transition-colors cursor-pointer'
           >
             {title}
           </button>
