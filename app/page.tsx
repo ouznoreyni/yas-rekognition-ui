@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import Head from "next/head";
-import { useEffect, useState } from "react";
-import { CameraCapture, DragDrop, ResultDisplay } from "./components";
-import { compareImages, ComparisonResponse } from "./service/api";
+import Head from 'next/head';
+import { useEffect, useState } from 'react';
+import { CameraCapture, DragDrop, ResultDisplay } from './components';
+import { compareImages, ComparisonResponse } from './service/api';
 
 export default function Home() {
   const [sourceImage, setSourceImage] = useState<File | null>(null);
@@ -61,7 +61,7 @@ export default function Home() {
       setResult(comparisonResult);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Une erreur inconnue est survenue"
+        err instanceof Error ? err.message : 'Une erreur inconnue est survenue'
       );
     } finally {
       setIsLoading(false);
@@ -69,67 +69,26 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className='min-h-screen bg-gray-50'>
       <Head>
         <title>Yes - Identification Automatique</title>
         <meta
-          name="description"
+          name='description'
           content="Identification par carte d'identité et reconnaissance faciale"
         />
       </Head>
 
-      <main className="container mx-auto py-8 px-4">
-        <h1 className="text-3xl font-bold text-center mb-8">
-          Identifiez vous facilement
-        </h1>
-
-        <div className="max-w-4xl mx-auto space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Source Image Section */}
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Votre Photo Faciale</h2>
-              {!isCameraOn && (
-                <DragDrop
-                  onFileAccepted={handleSourceImage}
-                  label="votre photo faciale"
-                  currentPreview={sourcePreview}
-                />
-              )}
-
-              <CameraCapture
-                onCapture={(file, preview) => handleSourceImage(file, preview)}
-                currentPreview={sourcePreview}
-                onCameraStatusChange={handleCameraStatusChange}
-              />
-            </div>
-
-            {/* Target Image Section */}
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Votre Carte d'Identité</h2>
-
-              <DragDrop
-                onFileAccepted={handleTargetImage}
-                label="votre carte d'identité"
-                currentPreview={targetPreview}
-              />
-            </div>
-          </div>
-
-          <button
-            onClick={handleCompare}
-            disabled={!sourceImage || !targetImage || isLoading}
-            className={`px-6 py-3 rounded-lg w-full font-medium text-white cursor-pointer
- ${
-   !sourceImage || !targetImage || isLoading
-     ? "bg-gray-400 cursor-not-allowed"
-     : "bg-blue-primary"
- }`}
-          >
-            {isLoading ? "Vérification en cours..." : "Vérifier mon identité"}
-          </button>
-
-          <ResultDisplay result={result} isLoading={isLoading} error={error} />
-        </div>
+      <main className='container mx-auto py-8 px-4'>
+        <h1> What is Lorem Ipsum?</h1>
+        Lorem Ipsum is simply dummy text of the printing and typesetting
+        industry. Lorem Ipsum has been the industry's standard dummy text ever
+        since the 1500s, when an unknown printer took a galley of type and
+        scrambled it to make a type specimen book. It has survived not only five
+        centuries, but also the leap into electronic typesetting, remaining
+        essentially unchanged. It was popularised in the 1960s with the release
+        of Letraset sheets containing Lorem Ipsum passages, and more recently
+        with desktop publishing software like Aldus PageMaker including versions
+        of Lorem Ipsum.
       </main>
     </div>
   );

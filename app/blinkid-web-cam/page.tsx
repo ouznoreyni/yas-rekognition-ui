@@ -104,7 +104,6 @@ export default function BlinkIDWebcamPage() {
           updateScanFeedback('Retournez le document pour scanner le verso.');
           toast.info('Retournez le document pour scanner le verso.', {
             position: 'top-center',
-            autoClose: false,
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
